@@ -730,3 +730,38 @@ def rosetest():
 
 if WHAT == "rosetest":
     rosetest()
+
+
+def avatar():
+    """Square avatar built for a circular crop: rose bouquet inside a filigree ring."""
+    W = 6.0
+    reset(1024, 1024, samples=96)
+    bloom(0.55)
+    ortho_camera(W)
+    tgt = _empty((0, 0, 0))
+    backdrop(W, W, center="#524873", edge="#1c1825", glow_center=(0, 0.15))
+    # double ring with outward curls and pearls
+    for R, bev in ((2.5, 0.032), (2.34, 0.013)):
+        ring = [(R * math.cos(math.radians(a)), 0, R * math.sin(math.radians(a))) for a in range(0, 361, 2)]
+        curve(ring, [1.0] * len(ring), bev, mats()["silver"])
+    for k in range(12):
+        a = math.radians(k * 30 + 15)
+        c = (2.68 * math.cos(a), 2.68 * math.sin(a))
+        p, r = spiral(c, 0.15, a + math.pi, 1.1, 1 if k % 2 else -1, r0=0.8, r1=0.3)
+        curve(p, r, 0.02, mats()["silver"])
+        pearl((2.5 * math.cos(math.radians(k * 30)), 2.5 * math.sin(math.radians(k * 30))), 0.055)
+    # bouquet
+    rose((0, -0.9, 0.3), 1.05, tilt=(16, 0), seed=77, openness=0.9)
+    rose((-1.05, -0.6, -0.72), 0.62, tilt=(20, 25), seed=78, openness=0.8)
+    rose((1.08, -0.6, -0.66), 0.58, tilt=(22, -28), seed=79, openness=0.75)
+    for ang, l in ((145, 1.85), (178, 1.95), (212, 1.7), (255, 1.45), (285, 1.45), (328, 1.7), (2, 1.95), (35, 1.85)):
+        leaf((0, -0.3, -0.15), l, ang, tilt=12, width=0.36)
+    feather((0.9, 0.9), 1.3, 118, opacity=0.65)
+    feather((-1.5, 0.75), 0.8, 72, opacity=0.5)
+    sparkle_field((-2.1, 2.1), (-2.1, 2.1), 22, 70, seed=12, avoid=[(-1.6, 1.6, -1.3, 1.4)], star_max=0.2)
+    key_lights(tgt, 8)
+    render(OUT)
+
+
+if WHAT == "avatar":
+    avatar()
