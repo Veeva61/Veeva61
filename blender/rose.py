@@ -268,7 +268,7 @@ def feather_mat(opacity=0.85):
     return m
 
 
-def backdrop(width, height, center="#3b3452", edge="#16131d", y=6.0, glow_center=(0, 0)):
+def backdrop(width, height, center="#3b3452", edge="#16131d", y=6.0, glow_center=(0, 0), squash=0.55, mid="#272135"):
     bpy.ops.mesh.primitive_plane_add(size=2, location=(0, y, 0), rotation=(math.radians(90), 0, 0))
     o = bpy.context.object
     o.scale = (width * 0.6, height * 0.6, 1)
@@ -278,11 +278,11 @@ def backdrop(width, height, center="#3b3452", edge="#16131d", y=6.0, glow_center
     tc = nt.nodes.new("ShaderNodeTexCoord")
     mp = nt.nodes.new("ShaderNodeMapping")
     mp.inputs["Location"].default_value = (-glow_center[0], -glow_center[1], 0)
-    mp.inputs["Scale"].default_value = (1.0, width / height * 0.55, 1)
+    mp.inputs["Scale"].default_value = (1.0, width / height * squash, 1)
     nt.links.new(tc.outputs["Object"], mp.inputs["Vector"])
     vl = nt.nodes.new("ShaderNodeVectorMath"); vl.operation = "LENGTH"
     nt.links.new(mp.outputs["Vector"], vl.inputs[0])
-    col = ramp_node(nt, vl.outputs["Value"], [(0.0, lin(center)), (0.55, lin("#272135")), (1.0, lin(edge))])
+    col = ramp_node(nt, vl.outputs["Value"], [(0.0, lin(center)), (0.55, lin(mid)), (1.0, lin(edge))])
     e = nt.nodes.new("ShaderNodeEmission")
     nt.links.new(col, e.inputs["Color"])
     e.inputs["Strength"].default_value = 1.0
@@ -765,3 +765,91 @@ def avatar():
 
 if WHAT == "avatar":
     avatar()
+
+
+def filigree_ring(R=2.5, curls=12, mat=None):
+    mat = mat or mats()["silver"]
+    for r_, bev in ((R, 0.032), (R - 0.16, 0.013)):
+        ring = [(r_ * math.cos(math.radians(a)), 0, r_ * math.sin(math.radians(a))) for a in range(0, 361, 2)]
+        curve(ring, [1.0] * len(ring), bev, mat)
+    step = 360 / curls
+    for k in range(curls):
+        a = math.radians(k * step + step / 2)
+        c = ((R + 0.18) * math.cos(a), (R + 0.18) * math.sin(a))
+        p, r = spiral(c, 0.15, a + math.pi, 1.1, 1 if k % 2 else -1, r0=0.8, r1=0.3)
+        curve(p, r, 0.02, mat)
+        pearl((R * math.cos(math.radians(k * step)), R * math.sin(math.radians(k * step))), 0.055)
+
+
+def avatar_base(center="#524873", edge="#1c1825", samples=96, mid="#272135", bloom_t=0.85):
+    W = 6.0
+    reset(1024, 1024, samples=samples)
+    bloom(0.55, threshold=bloom_t)
+    ortho_camera(W)
+    tgt = _empty((0, 0, 0))
+    backdrop(W, W, center=center, edge=edge, glow_center=(0, 0.15), squash=1.0, mid=mid)
+    return tgt
+
+
+def avatar_variant(v):
+    if v == "single":
+        tgt = avatar_base()
+        filigree_ring()
+        rose((0, -0.9, 0.05), 1.55, tilt=(12, 0), seed=91, openness=0.95)
+        for ang, l in ((140, 2.0), (200, 1.9), (250, 1.6), (290, 1.6), (340, 1.9), (40, 2.0)):
+            leaf((0, -0.3, -0.05), l, ang, tilt=10, width=0.34)
+        sparkle_field((-2.1, 2.1), (-2.1, 2.1), 20, 60, seed=31, avoid=[(-1.7, 1.7, -1.7, 1.7)], star_max=0.2)
+    elif v == "monogram":
+        tgt = avatar_base(center="#4d4470")
+        filigree_ring()
+        t = text("V", F_SCRIPT, 1.0, glow_mat(lin("#f6f2ff"), 2.4), (0.1, 0.2), y=-0.4)
+        fit(t, 2.3, 2.5)
+        rose((-0.75, -1.1, -1.05), 0.72, tilt=(18, 20), seed=92, openness=0.85)
+        rose((0.35, -1.0, -1.45), 0.45, tilt=(25, -20), seed=93, openness=0.7)
+        for ang, l in ((150, 1.3), (200, 1.2), (250, 1.0), (330, 1.4), (20, 1.1)):
+            leaf((-0.5, -0.6, -1.2), l, ang, tilt=12, width=0.34)
+        feather((1.25, 0.6), 1.2, 115, opacity=0.6)
+        sparkle_field((-2.1, 2.1), (-2.1, 2.1), 24, 70, seed=32, avoid=[(-1.3, 1.5, -1.0, 1.9), (-1.6, 0.9, -1.9, -0.6)], star_max=0.2)
+    elif v == "wreath":
+        tgt = avatar_base(center="#4a4168")
+        thin = [(2.55 * math.cos(math.radians(a)), 0, 2.55 * math.sin(math.radians(a))) for a in range(0, 361, 2)]
+        curve(thin, [1.0] * len(thin), 0.012, mats()["silver"])
+        n = 8
+        for i in range(n):
+            t_ = i / (n - 1)
+            a = math.radians(125 + 220 * t_)
+            k = 0.35 + 0.45 * math.sin(math.pi * t_)
+            R = 1.85
+            rose((R * math.cos(a), -0.9 - 0.05 * i, R * math.sin(a)), k, tilt=(15, 0), seed=100 + i, openness=0.8)
+            leaf((R * math.cos(a), -0.4, R * math.sin(a)), 0.9 * k + 0.3, math.degrees(a) + 90, tilt=10, width=0.36)
+            leaf((R * math.cos(a), -0.4, R * math.sin(a)), 0.8 * k + 0.25, math.degrees(a) - 90, tilt=10, width=0.36)
+        feather((0.15, 0.1), 1.6, 105, opacity=0.75)
+        star((0.85, 1.0), 0.32, glow_mat(lin("#ffffff"), 9))
+        star((-0.6, 0.55), 0.18, glow_mat(lin("#ffffff"), 9))
+        sparkle_field((-1.4, 1.6), (-0.6, 1.7), 14, 60, seed=33, avoid=[(-0.4, 0.7, -0.4, 1.4)], star_max=0.16)
+    elif v == "light":
+        tgt = avatar_base(center="#dcd3fa", edge="#8e7fc6", mid="#b9acec", bloom_t=1.4)
+        def metal(name, col, m_, r_):
+            mt, nt = new_mat(name)
+            p_ = next(n for n in nt.nodes if n.type == "BSDF_PRINCIPLED")
+            p_.inputs["Base Color"].default_value = lin(col)
+            p_.inputs["Metallic"].default_value = m_
+            p_.inputs["Roughness"].default_value = r_
+            return mt
+        mats()  # build the default set first, then swap in darker metals
+        dark = metal("silver_dark", "#8a78c8", 0.85, 0.25)
+        MATS["silver"] = dark
+        MATS["leaf"] = metal("leaf_dark", "#8f80cc", 0.7, 0.3)
+        filigree_ring(mat=dark)
+        rose((0, -0.9, 0.3), 1.05, tilt=(16, 0), seed=77, openness=0.9)
+        rose((-1.05, -0.6, -0.72), 0.62, tilt=(20, 25), seed=78, openness=0.8)
+        rose((1.08, -0.6, -0.66), 0.58, tilt=(22, -28), seed=79, openness=0.75)
+        for ang, l in ((145, 1.85), (178, 1.95), (212, 1.7), (255, 1.45), (285, 1.45), (328, 1.7), (2, 1.95), (35, 1.85)):
+            leaf((0, -0.3, -0.15), l, ang, tilt=12, width=0.36)
+        sparkle_field((-2.1, 2.1), (-2.1, 2.1), 18, 40, seed=34, avoid=[(-1.6, 1.6, -1.3, 1.4)], star_max=0.2)
+    key_lights(tgt, 8)
+    render(OUT)
+
+
+if WHAT.startswith("avatar:"):
+    avatar_variant(WHAT.split(":", 1)[1])

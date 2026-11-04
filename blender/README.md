@@ -10,6 +10,7 @@ blender -b --factory-startup --python blender/rose.py -- "div:Обо мне" ass
 blender -b --factory-startup --python blender/rose.py -- footer assets/footer.png
 blender -b --factory-startup --python blender/rose.py -- emblem frames 100 48
 blender -b --factory-startup --python blender/rose.py -- avatar assets/avatar.png
+blender -b --factory-startup --python blender/rose.py -- avatar:wreath assets/avatars/4-wreath.png  # single, monogram, wreath, light
 ```
 
 Кадры анимации собираются в GIF через Pillow.
