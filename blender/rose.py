@@ -853,3 +853,63 @@ def avatar_variant(v):
 
 if WHAT.startswith("avatar:"):
     avatar_variant(WHAT.split(":", 1)[1])
+
+
+def hole_backdrop(W, hole_r, center="#524873", edge="#1c1825"):
+    """Gradient backdrop with a transparent round hole in the middle (holdout)."""
+    bpy.ops.mesh.primitive_plane_add(size=2, location=(0, 6.0, 0), rotation=(math.radians(90), 0, 0))
+    o = bpy.context.object
+    half = W * 0.6
+    o.scale = (half, half, 1)
+    m, nt = new_mat("bg_hole")
+    nt.nodes.clear()
+    out = nt.nodes.new("ShaderNodeOutputMaterial")
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    vl = nt.nodes.new("ShaderNodeVectorMath"); vl.operation = "LENGTH"
+    nt.links.new(tc.outputs["Object"], vl.inputs[0])
+    col = ramp_node(nt, vl.outputs["Value"], [(0.0, lin(center)), (0.55, lin("#2c2540")), (1.0, lin(edge))])
+    e = nt.nodes.new("ShaderNodeEmission")
+    nt.links.new(col, e.inputs["Color"])
+    hold = nt.nodes.new("ShaderNodeHoldout")
+    inside = math_node(nt, "LESS_THAN", a=vl.outputs["Value"], vb=hole_r / half)
+    mix = nt.nodes.new("ShaderNodeMixShader")
+    nt.links.new(inside, mix.inputs["Fac"])
+    nt.links.new(e.outputs[0], mix.inputs[1])
+    nt.links.new(hold.outputs[0], mix.inputs[2])
+    nt.links.new(mix.outputs[0], out.inputs["Surface"])
+    o.data.materials.append(m)
+
+
+def frame_overlay():
+    """Discord-style avatar decoration: filigree ring + roses, transparent centre for a photo."""
+    W = 6.0
+    s = reset(1024, 1024, samples=96)
+    s.render.film_transparent = True
+    s.render.image_settings.color_mode = "RGBA"
+    bloom(0.5)
+    ortho_camera(W)
+    tgt = _empty((0, 0, 0))
+    hole_backdrop(W, 2.2)
+    filigree_ring(R=2.36)
+    # main cluster bottom-left
+    rose((-1.62, -1.0, -1.58), 0.78, tilt=(15, 18), seed=201, openness=0.9)
+    rose((-2.25, -0.9, -0.62), 0.46, tilt=(18, 30), seed=202, openness=0.8)
+    rose((-0.62, -0.9, -2.2), 0.44, tilt=(22, 5), seed=203, openness=0.8)
+    for ang, l in ((95, 1.1), (125, 0.9), (200, 1.0), (240, 1.15), (285, 1.0), (320, 0.85), (20, 0.9)):
+        leaf((-1.55, -0.6, -1.5), l, ang, tilt=12, width=0.36)
+    # small cluster top-right
+    rose((1.72, -1.0, 1.66), 0.44, tilt=(12, -20), seed=204, openness=0.85)
+    rose((2.25, -0.95, 0.85), 0.28, tilt=(15, -30), seed=205, openness=0.6)
+    for ang, l in ((10, 0.8), (60, 0.7), (110, 0.75), (300, 0.65)):
+        leaf((1.75, -0.6, 1.6), l, ang, tilt=12, width=0.36)
+    feather((-2.15, 1.25), 1.05, 70, opacity=0.65)
+    feather((2.0, -1.8), 0.8, 125, opacity=0.5)
+    sparkle_field((-2.9, 2.9), (-2.9, 2.9), 26, 60, seed=41, avoid=[(-2.0, 2.0, -2.0, 2.0)], star_max=0.2)
+    for x, z, sz in ((1.25, 1.95, 0.22), (-1.95, 0.35, 0.15), (0.6, -2.05, 0.17)):
+        star((x, z), sz, glow_mat(lin("#ffffff"), 9), y=-2.0)
+    key_lights(tgt, 8)
+    render(OUT)
+
+
+if WHAT == "frame":
+    frame_overlay()

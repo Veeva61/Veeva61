@@ -11,6 +11,7 @@ blender -b --factory-startup --python blender/rose.py -- footer assets/footer.pn
 blender -b --factory-startup --python blender/rose.py -- emblem frames 100 48
 blender -b --factory-startup --python blender/rose.py -- avatar assets/avatar.png
 blender -b --factory-startup --python blender/rose.py -- avatar:wreath assets/avatars/4-wreath.png  # single, monogram, wreath, light
+blender -b --factory-startup --python blender/rose.py -- frame assets/avatars/avatar-frame.png  # transparent centre, put any picture under it
 ```
 
 Кадры анимации собираются в GIF через Pillow.
