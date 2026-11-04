@@ -25,4 +25,4 @@ jobs:
         with:
           USERNAME: ${{ github.repository_owner }}
           BRANCH_NAME: main
-          THEME: github_dark
+          THEME: radical
