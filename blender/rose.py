@@ -913,3 +913,86 @@ def frame_overlay():
 
 if WHAT == "frame":
     frame_overlay()
+
+
+# ---------------- site decorations (transparent PNG) ----------------
+def transparent(w, h, samples=64):
+    s = reset(w, h, samples=samples)
+    s.render.film_transparent = True
+    s.render.image_settings.color_mode = "RGBA"
+    return s
+
+
+def site_piece(kind):
+    if kind == "bouquet":  # big cluster for the page corners
+        W = 6.0
+        transparent(1000, 1000)
+        ortho_camera(W)
+        tgt = _empty((0, 0, 0))
+        for loc, k, tilt, seed, op in (((-0.35, -1.0, -0.2), 1.0, (15, 10), 301, 0.92),
+                                       ((1.15, -0.9, -0.95), 0.66, (20, -20), 302, 0.82),
+                                       ((-1.55, -0.9, 0.85), 0.6, (18, 25), 303, 0.8),
+                                       ((0.85, -0.85, 0.95), 0.42, (24, -25), 304, 0.7),
+                                       ((-1.35, -0.85, -1.4), 0.4, (24, 20), 305, 0.65)):
+            rose(loc, k, tilt=tilt, seed=seed, openness=op)
+        rnd = random.Random(7)
+        for ang in range(0, 360, 30):
+            a = ang + rnd.uniform(-10, 10)
+            base = (-0.2 + 0.6 * math.cos(math.radians(a)), -0.5, -0.1 + 0.6 * math.sin(math.radians(a)))
+            leaf(base, rnd.uniform(1.1, 1.6), a, tilt=rnd.uniform(-15, 15), width=0.36)
+        for c, a0, d in (((2.05, 1.75), 0.0, 1), ((-2.2, -1.9), math.pi, -1), ((2.25, -1.45), -0.6, 1)):
+            p, r = spiral(c, 0.32, a0, 1.6, d, y=-0.2, r0=0.9, r1=0.3)
+            curve(p, r, 0.03, mats()["silver"])
+            pearl(c, 0.06, y=-0.3)
+        feather((1.35, 0.95), 1.35, 120, opacity=0.75)
+        feather((-2.0, -0.4), 1.2, 65, opacity=0.6)
+        key_lights(tgt, 8)
+    elif kind == "rose":  # single rose with leaves: favicon, accents
+        W = 3.0
+        transparent(640, 640, samples=96)
+        ortho_camera(W)
+        tgt = _empty((0, 0, 0))
+        rose((0, -0.9, 0.12), 0.95, tilt=(16, 0), seed=77, openness=0.9)
+        for ang, l in ((150, 1.25), (205, 1.15), (255, 0.95), (290, 0.95), (335, 1.15), (30, 1.25)):
+            leaf((0, -0.3, -0.05), l, ang, tilt=10, width=0.36)
+        key_lights(tgt, 5)
+    elif kind == "divider":  # centred rose with silver vines to both sides
+        W, H = 16.0, 2.0
+        transparent(1600, 200)
+        ortho_camera(W)
+        tgt = _empty((0, 0, 0))
+        for mirror in (False, True):
+            vine(0.75, 7.6, -0.02, 0.13, 1.0, 0.022, mirror=mirror)
+        rose((0, -0.8, 0.0), 0.58, tilt=(12, 0), seed=311, openness=0.9)
+        for ang in (25, 155, 205, 335):
+            leaf((0, -0.5, 0.0), 0.72, ang, tilt=10)
+        key_lights(tgt, W)
+    elif kind == "feather":
+        transparent(360, 900)
+        ortho_camera(2.4)
+        tgt = _empty((0, 0, 0))
+        feather((0, -0.95), 1.9, 90, width=0.3, opacity=0.9)
+        key_lights(tgt, 4)
+    elif kind == "ring":  # filigree ring with roses for a round photo
+        W = 6.0
+        transparent(1024, 1024, samples=96)
+        ortho_camera(W)
+        tgt = _empty((0, 0, 0))
+        filigree_ring(R=2.36)
+        rose((-1.62, -1.0, -1.58), 0.78, tilt=(15, 18), seed=201, openness=0.9)
+        rose((-2.25, -0.9, -0.62), 0.46, tilt=(18, 30), seed=202, openness=0.8)
+        rose((-0.62, -0.9, -2.2), 0.44, tilt=(22, 5), seed=203, openness=0.8)
+        for ang, l in ((95, 1.1), (125, 0.9), (200, 1.0), (240, 1.15), (285, 1.0), (320, 0.85), (20, 0.9)):
+            leaf((-1.55, -0.6, -1.5), l, ang, tilt=12, width=0.36)
+        rose((1.72, -1.0, 1.66), 0.44, tilt=(12, -20), seed=204, openness=0.85)
+        rose((2.25, -0.95, 0.85), 0.28, tilt=(15, -30), seed=205, openness=0.6)
+        for ang, l in ((10, 0.8), (60, 0.7), (110, 0.75), (300, 0.65)):
+            leaf((1.75, -0.6, 1.6), l, ang, tilt=12, width=0.36)
+        feather((-2.15, 1.25), 1.05, 70, opacity=0.65)
+        feather((2.0, -1.8), 0.8, 125, opacity=0.5)
+        key_lights(tgt, 8)
+    render(OUT)
+
+
+if WHAT.startswith("site:"):
+    site_piece(WHAT.split(":", 1)[1])
